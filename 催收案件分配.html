@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>催收案件分配 · 新人分享</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--sub:#7f8c8d;--border:#e8ecf1;--shadow:0 2px 12px rgba(0,0,0,.06);--primary:#1a73e8;--success:#27ae60;--warn:#e67e22;--a:#e74c3c;--b:#3498db;--c:#f39c12;--d:#27ae60;--sidebar-w:220px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;display:flex;min-height:100vh}
+a{color:var(--primary);text-decoration:none}
+
+/* Sidebar */
+.sidebar{width:var(--sidebar-w);background:linear-gradient(180deg,#1a3a5c 0%,#1a5276 50%,#1a6e8e 100%);color:#fff;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;padding:24px 0}
+.sidebar .logo{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:8px}
+.sidebar .logo h2{font-size:16px;font-weight:700}
+.sidebar .nav-group{margin:8px 0}
+.sidebar .nav-group .group-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;opacity:.45;padding:8px 20px 4px;font-weight:600}
+.sidebar .nav-item{display:flex;align-items:center;gap:8px;padding:9px 20px;font-size:13px;color:rgba(255,255,255,.75);cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.sidebar .nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.sidebar .nav-item.active{background:rgba(255,255,255,.12);color:#fff;border-left-color:#5dade2;font-weight:600}
+
+/* Main */
+.main{margin-left:var(--sidebar-w);flex:1;padding:28px 32px 48px;max-width:calc(100vw - var(--sidebar-w))}
+.page{display:none}
+.page.active{display:block;animation:fadeIn .35s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.section-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.section-desc{font-size:13px;color:var(--sub);margin-bottom:20px}
+.card{background:var(--card);border-radius:12px;padding:20px 24px;box-shadow:var(--shadow);margin-bottom:16px}
+.card h3{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+
+.btn{padding:10px 20px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-outline{background:#fff;border:2px solid var(--border);color:var(--text)}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+
+.tbl-wrap{overflow-x:auto;margin:8px 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 10px;text-align:center;border-bottom:1px solid var(--border)}
+th{background:#f7f9fc;font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.3px;white-space:nowrap}
+td .swatch{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
+.good{color:var(--success);font-weight:700}
+.warn{color:var(--warn);font-weight:700}
+.bad{color:var(--a);font-weight:700}
+.best{background:#ecfdf5!important}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:1000px){.grid2{grid-template-columns:1fr}}
+
+.stage-flow{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap}
+.stage-node{padding:10px 14px;border-radius:8px;font-weight:600;font-size:12px;text-align:center}
+.s-s0{background:#e8f5e9;color:#2e7d32}
+.s-s1{background:#fff3e0;color:#e65100}
+.s-s2{background:#fce4ec;color:#c62828}
+.s-m1{background:#e3f2fd;color:#1565c0}
+.s-m2{background:#f3e5f5;color:#6a1b9a}
+.s-m2p{background:#ffebee;color:#b71c1c}
+.stage-arr{font-size:16px;color:var(--sub)}
+
+.highlight-box{background:#fef9e7;border-left:4px solid var(--warn);padding:14px 18px;border-radius:4px;margin:12px 0;font-size:13px}
+.info-box{background:#eaf2f8;border-left:4px solid var(--primary);padding:14px 18px;border-radius:4px;margin:12px 0;font-size:13px}
+
+@media(max-width:768px){
+  .sidebar{width:60px;padding:16px 0}
+  .sidebar .logo h2,.sidebar .nav-item span:not(.icon),.sidebar .group-title{display:none}
+  .sidebar .nav-item{justify-content:center;padding:12px}
+  .main{margin-left:60px;padding:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══ -->
+<nav class="sidebar">
+  <div class="logo"><h2>📊 催收案件分配</h2></div>
+  <div class="nav-group">
+    <div class="group-title">概述</div>
+    <a class="nav-item active" onclick="navTo('page-overview')"><span class="icon">📋</span> 案件分配流程</a>
+  </div>
+  <div class="nav-group">
+    <div class="group-title">基础分配方法</div>
+    <a class="nav-item" onclick="navTo('page-random')"><span class="icon">🎲</span> 随机分配</a>
+    <a class="nav-item" onclick="navTo('page-snake')"><span class="icon">🐍</span> 蛇形分配</a>
+    <a class="nav-item" onclick="navTo('page-greedy')"><span class="icon">🎯</span> 贪心算法</a>
+    <a class="nav-item" onclick="navTo('page-compare')"><span class="icon">🏆</span> 算法对比</a>
+  </div>
+  <div class="nav-group">
+    <div class="group-title">催收效率提升</div>
+    <a class="nav-item" onclick="navTo('page-alternate')"><span class="icon">🔄</span> 交替分配</a>
+    <a class="nav-item" onclick="navTo('page-waterfill')"><span class="icon">💧</span> 注水分案</a>
+  </div>
+</nav>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main">
+
+<!-- ═══════════ PAGE: 案件分配流程 ═══════════ -->
+<div class="page active" id="page-overview">
+  <div class="section-title">📋 案件分配流程</div>
+  <div class="section-desc">催收案件从委案到分配的完整链路</div>
+
+  <div class="card">
+    <h3>催收阶段划分</h3>
+    <div class="stage-flow">
+      <div class="stage-node s-s0">S0 逾期前</div><span class="stage-arr">→</span>
+      <div class="stage-node s-s1" style="border:2px solid #e65100">S1 逾期1-7天</div><span class="stage-arr">→</span>
+      <div class="stage-node s-s2">S2 逾期8-15天</div><span class="stage-arr">→</span>
+      <div class="stage-node s-m1">M1 逾期16-30天</div><span class="stage-arr">→</span>
+      <div class="stage-node s-m2">M2 逾期31-60天</div><span class="stage-arr">→</span>
+      <div class="stage-node s-m2p">M2+ 逾期60+天</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>核心问题</h3>
+    <p style="font-size:14px;line-height:2">
+      ① <strong style="color:var(--a)">公平性</strong>：怎么保证各机构分到案件的户数和金额都符合约定份额？<br>
+      ② <strong style="color:var(--warn)">效率优化</strong>：在公平的基础上，如何通过分案策略提升整体回收率？<br>
+      ③ <strong style="color:var(--primary)">极端分布</strong>：S1真实数据中 58.7%案件&lt;₱2,000，但最大案件达₱86,503（极差865万倍）
+    </p>
+  </div>
+
+  <div class="card">
+    <h3>S1 真实案件分布</h3>
+    <p style="font-size:12px;color:var(--sub);margin-bottom:12px">
+      来源：<code>dwb_coll_sword_case_alloc_info</code> · CL S1 6月新增分案 · 每天采样1000件（TOP100大额 + TOP100小额 + 800中部随机）
+    </p>
+    <div class="grid2">
+      <div class="tbl-wrap"><table>
+        <tr><th>分位</th><th>金额</th><th>分位</th><th>金额</th></tr>
+        <tr><td>P0 (Min)</td><td>₱0.01</td><td>P75</td><td>₱2,959</td></tr>
+        <tr><td>P25</td><td>₱783</td><td>P90</td><td>₱5,549</td></tr>
+        <tr><td>P50</td><td>₱1,581</td><td>P100 (Max)</td><td class="bad">₱86,503</td></tr>
+        <tr><td colspan="4" style="font-size:11px;color:var(--sub)">案均 ₱2,605 · 样本 739,285 件 · 极差 865万倍</td></tr>
+      </table></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>分群</th><th>案件数</th><th>户数占比</th><th>金额占比</th><th>案均</th></tr>
+        <tr><td><span class="swatch" style="background:#e74c3c"></span>S1 Large</td><td>49,339</td><td>66.2%</td><td class="warn">87.6%</td><td class="warn">₱4,341</td></tr>
+        <tr><td><span class="swatch" style="background:#3498db"></span>S1 Small</td><td>25,159</td><td>33.8%</td><td>12.4%</td><td>₱1,138</td></tr>
+        <tr style="font-weight:700;background:#f7f9fc"><td>合计</td><td>74,498</td><td>100%</td><td>₱247M</td><td>₱3,310</td></tr>
+      </table></div>
+    </div>
+    <div class="highlight-box" style="margin-top:12px">
+      ⚠️ Large 占户数 <strong>66%</strong> 却占金额 <strong>88%</strong>，案均是 Small 的 <strong>3.8倍</strong>——大额案件分配直接决定各机构金额占比。
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE: 随机分配 ═══════════ -->
+<div class="page" id="page-random">
+  <div class="section-title">🎲 随机分配</div>
+  <div class="section-desc">每个案件生成随机数 00-99，按区间分配机构</div>
+
+  <div class="info-box">
+    <strong>背景：</strong>假设S1每天需要分配1000个案件，需要分配30天，每天分给ABCD四家机构。机构份额分别为A-40%, B-30%, C-20%, D-10%。采样使用6月CL S1真实新增案件数据，每日采样1000件（当天TOP100最大金额 + TOP100最小金额 + 800件中部随机采样）。
+  </div>
+
+  <div class="card"><h3>算法逻辑</h3>
+    <p style="font-size:14px">
+      每天分配1000个案件 → 给每个案件生成一个随机数(00-99)：<br>
+      <strong>00-39 → A机构(40%) | 40-69 → B机构(30%) | 70-89 → C机构(20%) | 90-99 → D机构(10%)</strong>
+    </p>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="runAlgoPage('random')">▶ 运行随机分配</button>
+    <button class="btn btn-outline" onclick="resampleDaily()">🔄 重新采样</button>
+  </div>
+  <div id="randomResult"></div>
+</div>
+
+<!-- ═══════════ PAGE: 蛇形分配 ═══════════ -->
+<div class="page" id="page-snake">
+  <div class="section-title">🐍 蛇形分配</div>
+  <div class="section-desc">案件金额降序 → 蛇形轮转 → A4→B3→C2→D1→D1→C2→B3→A4</div>
+
+  <div class="info-box">
+    <strong>背景：</strong>假设S1每天需要分配1000个案件，需要分配30天，每天分给ABCD四家机构。机构份额分别为A-40%, B-30%, C-20%, D-10%。采样使用6月CL S1真实新增案件数据，每日采样1000件（当天TOP100最大金额 + TOP100最小金额 + 800件中部随机采样）。
+  </div>
+
+  <div class="card"><h3>算法逻辑</h3>
+    <p style="font-size:14px">
+      案件金额<strong>从大到小排序</strong>，从最大的金额开始按照份额的比例，蛇形分案个数：<br>
+      A分4个 → B分3个 → C分2个 → D分1个 → 折返 → D分1个 → C分2个 → B分3个 → A分4个 → 循环...
+    </p>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="runAlgoPage('snake')">▶ 运行蛇形分配</button>
+    <button class="btn btn-outline" onclick="resampleDaily()">🔄 重新采样</button>
+  </div>
+  <div id="snakeResult"></div>
+</div>
+
+<!-- ═══════════ PAGE: 贪心算法 ═══════════ -->
+<div class="page" id="page-greedy">
+  <div class="section-title">🎯 贪心算法</div>
+  <div class="section-desc">局部最优选择组成全局最优解 · 大案优先 + 动态优先级 + 容量上限103%</div>
+
+  <div class="info-box">
+    <strong>背景：</strong>假设S1每天需要分配1000个案件，需要分配30天，每天分给ABCD四家机构。机构份额分别为A-40%, B-30%, C-20%, D-10%。采样使用6月CL S1真实新增案件数据，每日采样1000件（当天TOP100最大金额 + TOP100最小金额 + 800件中部随机采样）。
+  </div>
+
+  <div class="card"><h3>算法逻辑</h3>
+    <p style="font-size:14px">
+      ① 案件金额<strong>从大到小排序</strong>（大案优先，避免大案后期塞不进去）<br>
+      ② 第1轮（前4案）：按<strong>份额比例从大到小</strong>的优先级分配（A→B→C→D各1件）<br>
+      ③ 第2轮起（第5案开始）：计算 <code>priority = 已分金额 ÷ 机构份额</code>（值越小优先级越高）<br>
+      ④ 每案分配给 priority 最小的机构，判断<strong>当月容量上限 ≤ 103%</strong><br>
+      ⑤ 每分配满4案完成一轮，继续下一轮
+    </p>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="runAlgoPage('greedy')">▶ 运行贪心算法</button>
+    <button class="btn btn-outline" onclick="resampleDaily()">🔄 重新采样</button>
+  </div>
+  <div id="greedyResult"></div>
+</div>
+
+<!-- ═══════════ PAGE: 算法对比 ═══════════ -->
+<div class="page" id="page-compare">
+  <div class="section-title">🏆 算法对比</div>
+  <div class="section-desc">同一天案件 · 3种算法 × 3种规模 · 对比户数/金额公平度</div>
+
+  <div class="card"><h3>采样规则</h3>
+    <p style="font-size:13px;color:#555">
+      基于当日真实新增分布（t100max / t100min / p50）生成 N 件案件：<br>
+      <strong>10% 极大值</strong>（t100max ~ daily_max 区间）+ <strong>10% 极小值</strong>（daily_min ~ t100min 区间）+ <strong>80% 中部随机</strong>（t100min ~ t100max，以 P50 对半分布）
+    </p>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="runCompareScenarios()">▶ 运行对比（3种规模 × 4种算法）</button>
+  </div>
+
+  <div class="card" style="font-size:13px;color:#555;line-height:2">
+    <h3>📐 指标口径</h3>
+    <strong>户数公平</strong> = 1−CV(各机构户数占比/目标份额) &nbsp;|&nbsp; <strong>金额公平</strong> = 1−CV(各机构金额占比/目标份额)<br>
+    <strong>户均均衡</strong> = 1−CV(各机构户均金额) &nbsp;|&nbsp; <strong>极差均衡</strong> = 1−CV(各机构极差)<br>
+    <span style="font-size:11px;color:var(--sub)">四个指标均为越高越好。CV=σ/μ。其中"极差"=每机构最大案件−最小案件，各机构极差的CV越小 → 各机构金额跨度越接近 → 极差均衡越高 → 极端案件未被某家独吞。</span>
+  </div>
+
+  <div id="compareResult"></div>
+</div>
+
+<!-- ═══════════ PAGE: 交替分配 ═══════════ -->
+<div class="page" id="page-alternate">
+  <div class="section-title">🔄 交替分配</div>
+  <div class="section-desc">M2+ 委外催收场景 · 同一案件不连续两个月分给同一机构</div>
+
+  <div class="info-box">
+    <strong>背景：</strong>假设S1每天需要分配1000个案件，需要分配30天，每天分给ABCD四家机构。机构份额分别为A-40%, B-30%, C-20%, D-10%。采样使用6月CL S1真实新增案件数据，每日采样1000件。
+  </div>
+
+  <div class="card"><h3>算法逻辑</h3>
+    <p style="font-size:14px">
+      ① 案件金额<strong>从大到小排序</strong>（与贪心算法相同）<br>
+      ② 计算 <code>priority = 已分金额 ÷ 机构份额</code>，值越小优先级越高<br>
+      ③ 判断：该案件<strong>上个月分配的机构</strong>是否是优先级最高的机构？<br>
+      &nbsp;&nbsp;&nbsp;→ 是：<strong>跳过</strong>，分配给优先级<strong>第二</strong>的机构<br>
+      &nbsp;&nbsp;&nbsp;→ 否：分配给优先级最高的机构<br>
+      ④ 容量上限 <strong>103%</strong>
+    </p>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="runAlternate()">▶ 运行交替分配（2个月）</button>
+    <button class="btn btn-outline" onclick="resampleDaily()">🔄 重新采样</button>
+  </div>
+  <div id="alternateResult"></div>
+</div>
+
+<!-- ═══════════ PAGE: 注水分案 ═══════════ -->
+<div class="page" id="page-waterfill">
+  <div class="section-title">💧 注水分案</div>
+  <div class="section-desc">员工维度负载均衡 · 每天分案后各员工库内案件数量和金额趋同</div>
+  <div class="card"><h3>算法逻辑</h3>
+    <p style="font-size:14px">
+      ① 第2天起，统计前一天员工的在库金额（= 前一天分案 − 前一天回收）<br>
+      ② 当天案件<strong>金额从大到小排序</strong>（大案优先分配）<br>
+      ③ <code>priority = 在库金额 + 今日已分配金额</code>（值越小优先级越高）<br>
+      ④ 逐件分配给 priority 最小的员工<br>
+      ⑤ <strong>容量上限</strong>：当天分配 ≤ (当天总额 ÷ 员工数) × 1.3<br>
+      &nbsp;&nbsp;&nbsp;（防止前一天休息员工因在库少而一次性拿到过多案件）
+    </p>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="runWaterfill()">▶ 运行注水分案</button>
+    <button class="btn btn-outline" onclick="resampleDaily()">🔄 重新采样</button>
+  </div>
+  <div id="waterfillResult"></div>
+</div>
+
+</div><!-- /main -->
+
+<!-- ═══════════════ SCRIPTS ═══════════════ -->
+<script>
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+const INSTS = [
+  { name:'A', share:0.40, color:'#e74c3c' },
+  { name:'B', share:0.30, color:'#3498db' },
+  { name:'C', share:0.20, color:'#f39c12' },
+  { name:'D', share:0.10, color:'#27ae60' },
+];
+const DAYS = 30, CPDAY = 1000, TOTAL = DAYS * CPDAY;
+const BANDS = [
+  {label:'<P2K',min:0,max:2000},{label:'P2-5K',min:2000,max:5000},
+  {label:'P5-10K',min:5000,max:10000},{label:'P10-20K',min:10000,max:20000},
+  {label:'P20-50K',min:20000,max:50000},{label:'>P50K',min:50000,max:Infinity}
+];
+
+// June 2026 daily data from phl_data.edw_fact_sword_case_allocation_info_snp (daily snapshot)
+// Filter: app='juanhand', overdue_day 1-7, case_type=1, alloc_status=10, owner_org_name LIKE 'S1%'
+// June 2026 CL S1 daily NEW ALLOCATION stats from dwb_coll_sword_case_alloc_info
+// Fields: daily_max, top100_max_floor, top100_min_ceil, daily_min, avg_amt, p50, total_cases
+const JUNE_NEW_ALLOC = [
+  {max:56118,t100max:21555,t100min:416, min:2,   avg:3698, p50:2301, cnt:6886},
+  {max:55458,t100max:12303,t100min:500, min:2,   avg:3344, p50:2196, cnt:2797},
+  {max:66125,t100max:10617,t100min:584, min:2,   avg:3258, p50:2185, cnt:2319},
+  {max:56038,t100max:9635, t100min:595, min:3,   avg:3159, p50:2082, cnt:1889},
+  {max:55038,t100max:11007,t100min:589, min:1,   avg:3188, p50:2137, cnt:2266},
+  {max:56038,t100max:10701,t100min:561, min:1,   avg:3133, p50:2097, cnt:2392},
+  {max:53236,t100max:11207,t100min:560, min:2,   avg:3188, p50:2102, cnt:2348},
+  {max:54918,t100max:10848,t100min:560, min:1,   avg:3123, p50:2070, cnt:2446},
+  {max:56538,t100max:8966, t100min:565, min:1,   avg:2948, p50:2041, cnt:2266},
+  {max:62191,t100max:10410,t100min:558, min:2,   avg:3122, p50:2067, cnt:2238},
+  {max:54560,t100max:9335, t100min:499, min:8,   avg:2952, p50:2005, cnt:2355},
+  {max:56538,t100max:10477,t100min:528, min:1,   avg:3064, p50:2012, cnt:2300},
+  {max:56538,t100max:8986, t100min:531, min:1,   avg:3044, p50:1972, cnt:2120},
+  {max:52015,t100max:9460, t100min:531, min:1,   avg:2916, p50:2009, cnt:2391},
+  {max:61653,t100max:12906,t100min:549, min:5,   avg:3328, p50:2116, cnt:2802},
+  {max:56579,t100max:14310,t100min:448, min:2,   avg:3667, p50:2223, cnt:3074},
+  {max:56579,t100max:11307,t100min:590, min:1,   avg:3419, p50:2189, cnt:2258},
+  {max:57669,t100max:8072, t100min:568, min:1,   avg:2836, p50:1963, cnt:2114},
+  {max:56538,t100max:9046, t100min:622, min:4,   avg:3161, p50:2110, cnt:2010},
+  {max:56538,t100max:9274, t100min:606, min:4,   avg:3072, p50:1989, cnt:1962},
+  {max:56538,t100max:11307,t100min:485, min:1,   avg:3310, p50:2172, cnt:2775},
+  {max:56538,t100max:11833,t100min:528, min:3,   avg:3105, p50:2082, cnt:3118},
+  {max:56538,t100max:10194,t100min:549, min:1,   avg:3098, p50:2082, cnt:2210},
+  {max:56538,t100max:9811, t100min:531, min:3,   avg:2927, p50:1987, cnt:2434},
+  {max:46563,t100max:9603, t100min:553, min:1,   avg:3026, p50:2075, cnt:2306},
+  {max:61642,t100max:11307,t100min:222, min:1,   avg:3136, p50:1985, cnt:2472},
+  {max:56538,t100max:10487,t100min:565, min:3,   avg:3226, p50:2103, cnt:2340},
+  {max:55295,t100max:9903, t100min:559, min:1,   avg:2990, p50:2070, cnt:2477},
+  {max:68798,t100max:12264,t100min:550, min:2,   avg:3396, p50:2259, cnt:2792},
+  {max:56778,t100max:12438,t100min:585, min:2,   avg:3558, p50:2154, cnt:2406}
+];
+
+// Global state
+let dailyCases = []; // [day][case]
+let chartInsts = {};
+let algoResults = {}; // {random:{}, snake:{}, greedy:{}}
+
+// =============================================================================
+// DAILY SAMPLING: TOP100 max + TOP100 min + 800 stratified from real June data
+// =============================================================================
+function linInterp(lo,hi,t){return lo+t*(hi-lo);}
+
+function sampleDayCases(dayIdx){
+  const dp = JUNE_NEW_ALLOC[dayIdx];
+  const cases = [];
+
+  // 1) TOP 100 largest: distributed between t100max and max
+  for(let i=0;i<100;i++){
+    // exponential decay toward max: most near t100max, few at max
+    const t = Math.pow(Math.random(),3); // heavily skewed toward floor
+    const amt = Math.round(linInterp(dp.t100max, dp.max, t));
+    cases.push({id:'d'+dayIdx+'_top'+i, amt, day:dayIdx, isTop:true});
+  }
+
+  // 2) TOP 100 smallest: distributed between min and t100min
+  for(let i=0;i<100;i++){
+    const t = Math.pow(Math.random(),3); // heavily skewed toward floor
+    const amt = Math.round(linInterp(dp.min, dp.t100min, t));
+    cases.push({id:'d'+dayIdx+'_bot'+i, amt, day:dayIdx, isBot:true});
+  }
+
+  // 3) 800 stratified: sample from the middle range (t100min to t100max) matching real p50
+  for(let i=0;i<800;i++){
+    // Use triangle-ish distribution centered near p50, bounded by t100min..t100max
+    const r = Math.random();
+    let amt;
+    if(r<0.5){
+      // lower half: t100min → p50
+      const t2 = r*2;
+      amt = Math.round(linInterp(dp.t100min, dp.p50, t2));
+    }else{
+      // upper half: p50 → t100max
+      const t2 = (r-0.5)*2;
+      amt = Math.round(linInterp(dp.p50, dp.t100max, Math.pow(t2,0.6)));
+    }
+    cases.push({id:'d'+dayIdx+'_m'+i, amt, day:dayIdx});
+  }
+
+  // Shuffle
+  for(let i=cases.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cases[i],cases[j]]=[cases[j],cases[i]];}
+  return cases;
+}
+
+function resampleDaily(){
+  dailyCases=[];
+  for(let d=0;d<DAYS;d++)dailyCases.push(sampleDayCases(d));
+  algoResults={};
+  document.querySelectorAll('[id$=Result]').forEach(el=>el.innerHTML='');
+}
+resampleDaily(); // init
+
+// =============================================================================
+// ALGORITHMS (all operate on one day's cases)
+// =============================================================================
+
+// Random: random 0-99 per case
+function randomDay(cases){
+  const r={A:[],B:[],C:[],D:[]};
+  const ordered=[];
+  let rank=0;
+  for(const c of cases){
+    rank++;
+    const rn=Math.floor(Math.random()*100);
+    let inst;
+    if(rn<40)inst='A';else if(rn<70)inst='B';else if(rn<90)inst='C';else inst='D';
+    r[inst].push(c);
+    ordered.push({...c,rn,inst,rank});
+  }
+  return {assignment:r, ordered};
+}
+
+// Snake
+function snakeDay(cases){
+  const sorted=[...cases].sort((a,b)=>b.amt-a.amt);
+  const r={A:[],B:[],C:[],D:[]};
+  const pat=[...Array(4).fill('A'),...Array(3).fill('B'),...Array(2).fill('C'),...Array(1).fill('D'),
+             ...Array(1).fill('D'),...Array(2).fill('C'),...Array(3).fill('B'),...Array(4).fill('A')];
+  let ci=0,order=[];
+  while(ci<sorted.length){for(const n of pat){if(ci>=sorted.length)break;r[n].push(sorted[ci]);order.push({...sorted[ci],inst:n,rank:ci+1});ci++;}}
+  return {assignment:r,ordered:order};
+}
+
+// Greedy
+function greedyDay(cases){
+  const sorted=[...cases].sort((a,b)=>b.amt-a.amt);
+  const r={A:[],B:[],C:[],D:[]};
+  const assigned={A:0,B:0,C:0,D:0};
+  const totalAmt=sorted.reduce((s,c)=>s+c.amt,0);
+  const order=[];
+  // Round 1: assign by share order (A→B→C→D), one each
+  const round1Insts=['A','B','C','D'];
+  let si=0;
+  for(let ri=0;ri<4&&si<sorted.length;ri++,si++){
+    const inst=round1Insts[ri];
+    const c=sorted[si];
+    r[inst].push(c);assigned[inst]+=c.amt;
+    const prs=INSTS.map(i=>({n:i.name,v:assigned[i.name]/i.share}));
+    order.push({...c,inst,rank:si+1,round:1,priorities:prs,cumAmt:assigned[inst]});
+  }
+  // Round 2+: priority-based
+  let round=2;
+  while(si<sorted.length){
+    for(let ri=0;ri<4&&si<sorted.length;ri++,si++){
+      const c=sorted[si];
+      const prs=INSTS.map(i=>({n:i.name,v:assigned[i.name]/i.share})).sort((a,b)=>a.v-b.v);
+      let best=null;
+      for(const p of prs){
+        const maxAllowed=totalAmt*INSTS.find(x=>x.name===p.n).share*1.03;
+        if(assigned[p.n]+c.amt<=maxAllowed){best=p.n;break;}
+      }
+      if(!best)best=prs[0].n; // fallback
+      r[best].push(c);assigned[best]+=c.amt;
+      const prs2=INSTS.map(i=>({n:i.name,v:assigned[i.name]/i.share}));
+      order.push({...c,inst:best,rank:si+1,round,priorities:prs2,cumAmt:assigned[best]});
+    }
+    round++;
+  }
+  return {assignment:r,ordered:order};
+}
+
+// =============================================================================
+// METRICS
+// =============================================================================
+function calcMetrics(assignAllDays){
+  const m={};
+  for(const inst of INSTS){
+    const cs=assignAllDays[inst.name]||[];
+    const cnt=cs.length,amts=cs.map(c=>c.amt);
+    const tot=amts.reduce((s,v)=>s+v,0);
+    const avg=cnt>0?tot/cnt:0;
+    const mn=cnt>0?Math.min(...amts):0,mx=cnt>0?Math.max(...amts):0;
+    m[inst.name]={count:cnt,totalAmount:tot,avgAmount:avg,minAmount:mn,maxAmount:mx,range:mx-mn,
+      bands:BANDS.map(b=>({...b,count:cs.filter(c=>c.amt>=b.min&&c.amt<b.max).length}))};
+  }
+  let ta=0,tc=0;
+  for(const inst of INSTS){ta+=m[inst.name].totalAmount;tc+=m[inst.name].count;}
+  for(const inst of INSTS){
+    m[inst.name].countRatio=tc>0?m[inst.name].count/tc:0;
+    m[inst.name].amountRatio=ta>0?m[inst.name].totalAmount/ta:0;
+  }
+  const countR=INSTS.map(i=>m[i.name].countRatio/i.share);
+  const amtR=INSTS.map(i=>m[i.name].amountRatio/i.share);
+  const ranges=INSTS.map(i=>m[i.name].range);
+  const avgs=INSTS.map(i=>m[i.name].avgAmount);
+  m._fair={countFairness:1-cv(countR),amountFairness:1-cv(amtR),rangeCV:cv(ranges),avgCV:cv(avgs)};
+  m._total=ta;m._totalCnt=tc;
+  return m;
+}
+function cv(arr){const mn=arr.reduce((s,v)=>s+v,0)/arr.length;if(mn===0)return 0;return Math.sqrt(arr.reduce((s,v)=>s+(v-mn)**2,0)/arr.length)/mn;}
+
+// =============================================================================
+// RUN ALL DAYS
+// =============================================================================
+function runAllDays(algoFn){
+  const all={A:[],B:[],C:[],D:[]};
+  const dayDetails=[];
+  for(let d=0;d<DAYS;d++){
+    const res=algoFn(dailyCases[d]);
+    for(const inst of INSTS)all[inst.name].push(...res.assignment[inst.name]);
+    dayDetails.push(res);
+  }
+  return {all,dayDetails};
+}
+
+// =============================================================================
+// UI: 20-case detail table
+// =============================================================================
+function render20Table(ordered,algoType,dayIdx){
+  const first20=ordered.slice(0,20);
+  const left10=first20.slice(0,10), right10=first20.slice(10,20);
+  const cum={A:0,B:0,C:0,D:0};
+  // Pre-compute cum for all 20
+  for(const c of first20) cum[c.inst]+=c.amt;
+
+  function buildHalf(half,startRank){
+    let h='<table style="font-size:11px">';
+    // Header
+    h+='<tr><th style="padding:4px 6px">#</th><th style="padding:4px 6px">金额</th>';
+    if(algoType==='random') h+='<th style="padding:4px 6px">随机数</th>';
+    h+='<th style="padding:4px 6px">机构</th>';
+    if(algoType==='greedy') h+='<th style="padding:4px 6px">A pr</th><th style="padding:4px 6px">B pr</th><th style="padding:4px 6px">C pr</th><th style="padding:4px 6px">D pr</th>';
+    h+='<th style="padding:4px 6px">累计</th></tr>';
+    const halfCum={A:0,B:0,C:0,D:0};
+    for(const c of half){
+      halfCum[c.inst]+=c.amt;
+      h+='<tr><td style="padding:3px 6px">'+c.rank+'</td>';
+      h+='<td style="padding:3px 6px;white-space:nowrap">₱'+c.amt.toLocaleString()+'</td>';
+      if(algoType==='random') h+='<td style="padding:3px 6px">'+(c.rn!=null?c.rn:'-')+'</td>';
+      h+='<td style="padding:3px 6px;font-weight:700;color:'+INSTS.find(i=>i.name===c.inst).color+'">'+c.inst+'</td>';
+      if((algoType==='greedy')&&c.priorities){
+        for(const inst of INSTS){
+          const pr=c.priorities.find(p=>p.n===inst.name);
+          h+='<td style="padding:3px 6px;white-space:nowrap">₱'+(pr?Math.round(pr.v).toLocaleString():'-')+'</td>';
+        }
+      }
+      h+='<td style="padding:3px 6px;white-space:nowrap">₱'+Math.round(halfCum[c.inst]).toLocaleString()+'</td></tr>';
+    }
+    h+='</table>';
+    return h;
+  }
+
+  let h='<div class="card"><h3>📋 第1天 前2轮分配流程（前20案）</h3>';
+  h+='<div style="display:flex;gap:20px;flex-wrap:wrap">';
+  h+='<div style="flex:1;min-width:260px"><div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:6px">案件 1-10</div><div class="tbl-wrap">'+buildHalf(left10,1)+'</div></div>';
+  h+='<div style="flex:1;min-width:260px"><div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:6px">案件 11-20</div><div class="tbl-wrap">'+buildHalf(right10,11)+'</div></div>';
+  h+='</div></div>';
+  return h;
+}
+
+// =============================================================================
+// UI: 3-day summary table
+// =============================================================================
+function render3Day(dayDetails){
+  let h='<div class="card"><h3>📅 前3天分配结果</h3><div class="tbl-wrap"><table>';
+  h+='<tr><th>日期</th><th>A户数</th><th>A金额</th><th>B户数</th><th>B金额</th><th>C户数</th><th>C金额</th><th>D户数</th><th>D金额</th></tr>';
+  for(let d=0;d<3;d++){
+    const as=dayDetails[d].assignment;
+    h+='<tr><td>第'+(d+1)+'天</td>';
+    for(const inst of INSTS){
+      const cs=as[inst.name];const amt=cs.reduce((s,c)=>s+c.amt,0);
+      h+='<td>'+cs.length+'</td><td>₱'+Math.round(amt).toLocaleString()+'</td>';
+    }
+    h+='</tr>';
+  }
+  // totals
+  const t3={A:[],B:[],C:[],D:[]};
+  for(let d=0;d<3;d++)for(const inst of INSTS)t3[inst.name].push(...dayDetails[d].assignment[inst.name]);
+  h+='<tr style="font-weight:700;background:#f7f9fc"><td>前3天合计</td>';
+  for(const inst of INSTS){
+    const cs=t3[inst.name];const amt=cs.reduce((s,c)=>s+c.amt,0);
+    h+='<td>'+cs.length+'</td><td>₱'+Math.round(amt).toLocaleString()+'</td>';
+  }
+  h+='</tr></table></div></div>';
+  return h;
+}
+
+// =============================================================================
+// UI: 30-day summary table
+// =============================================================================
+function render30Day(metrics){
+  const f=metrics._fair;
+  const avg=metrics._total/metrics._totalCnt;
+  let h='<div class="card"><h3>📊 30天汇总结果</h3>';
+
+  // Fairness scores
+  h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">';
+  h+=scoreBox('户数公平度',(f.countFairness*100).toFixed(1)+'%',f.countFairness>=.95?'good':f.countFairness>=.85?'warn':'bad');
+  h+=scoreBox('金额公平度',(f.amountFairness*100).toFixed(1)+'%',f.amountFairness>=.95?'good':f.amountFairness>=.85?'warn':'bad');
+  h+=scoreBox('户均均衡',(f.avgCV*100).toFixed(1)+'%',f.avgCV<.3?'good':f.avgCV<.5?'warn':'bad');
+  h+=scoreBox('极差均衡',((1-f.rangeCV)*100).toFixed(1)+'%',(1-f.rangeCV)>=.7?'good':(1-f.rangeCV)>=.5?'warn':'bad');
+  h+=scoreBox('总金额','₱'+(metrics._total/1e6).toFixed(2)+'M','');
+  h+=scoreBox('总户数',(metrics._totalCnt).toLocaleString()+'件','');
+  h+='</div>';
+
+  // Detail table
+  h+='<div class="tbl-wrap"><table>';
+  h+='<tr><th>机构</th><th>目标份额</th><th>分配户数</th><th>户数占比</th><th>户数偏差</th><th>分配金额</th><th>金额占比</th><th>金额偏差</th><th>户均金额</th><th>极差</th><th>金额段分布</th></tr>';
+  for(const inst of INSTS){
+    const m=metrics[inst.name];
+    const cd=((m.countRatio-inst.share)*100).toFixed(1);
+    const ad=((m.amountRatio-inst.share)*100).toFixed(1);
+    const cdCls=Math.abs(cd)<=1?'good':Math.abs(cd)<=3?'warn':'bad';
+    const adCls=Math.abs(ad)<=1?'good':Math.abs(ad)<=3?'warn':'bad';
+    const bStrs=m.bands.map(b=>b.label+':'+b.count).join(' ');
+    h+='<tr><td><span class="swatch" style="background:'+inst.color+'"></span><strong>'+inst.name+'</strong></td>';
+    h+='<td>'+(inst.share*100).toFixed(0)+'%</td>';
+    h+='<td>'+m.count.toLocaleString()+'</td>';
+    h+='<td>'+(m.countRatio*100).toFixed(1)+'%</td>';
+    h+='<td class="'+cdCls+'">'+(cd>=0?'+':'')+cd+'pp</td>';
+    h+='<td>₱'+(m.totalAmount/1e6).toFixed(1)+'M</td>';
+    h+='<td>'+(m.amountRatio*100).toFixed(1)+'%</td>';
+    h+='<td class="'+adCls+'">'+(ad>=0?'+':'')+ad+'pp</td>';
+    h+='<td>₱'+Math.round(m.avgAmount).toLocaleString()+'</td>';
+    h+='<td>₱'+m.range.toLocaleString()+'</td>';
+    h+='<td style="font-size:10px">'+bStrs+'</td></tr>';
+  }
+  h+='</table></div></div>';
+  return h;
+}
+function scoreBox(label,value,cls){
+  const clr=cls==='good'?'var(--success)':cls==='warn'?'var(--warn)':cls==='bad'?'var(--a)':'var(--primary)';
+  return '<div style="flex:1;min-width:90px;background:#f7f9fc;border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:'+clr+'">'+value+'</div><div style="font-size:11px;color:var(--sub)">'+label+'</div></div>';
+}
+
+// =============================================================================
+// RUN ALGORITHM PAGE
+// =============================================================================
+function runAlgoPage(type){
+  if(dailyCases.length===0)resampleDaily();
+  let algoFn,resultDivId;
+  if(type==='random'){algoFn=randomDay;resultDivId='randomResult';}
+  else if(type==='snake'){algoFn=snakeDay;resultDivId='snakeResult';}
+  else if(type==='greedy'){algoFn=greedyDay;resultDivId='greedyResult';}
+  else{algoFn=greedyDay;resultDivId='greedyResult';}
+
+  const {all,dayDetails}=runAllDays(algoFn);
+  const metrics=calcMetrics(all);
+  algoResults[type]={metrics,dayDetails};
+
+  let html='';
+  html+=render20Table(dayDetails[0].ordered,type,0);
+  html+=render3Day(dayDetails);
+  html+=render30Day(metrics);
+  document.getElementById(resultDivId).innerHTML=html;
+  document.getElementById(resultDivId).scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// =============================================================================
+// COMPARE ALL
+// =============================================================================
+
+function sampleCompareDay(n){
+  // 10% max extremes + 10% min extremes + 80% random middle
+  // Use day 15 (6/16) data as midpoint for distribution parameters
+  const dp=JUNE_NEW_ALLOC[15];
+  const maxN=Math.round(n*0.1), minN=Math.round(n*0.1), midN=n-maxN-minN;
+  const cases=[];
+
+  // 10% largest: between t100max and daily_max
+  for(let i=0;i<maxN;i++){const t=Math.pow(Math.random(),3);const amt=Math.round(linInterp(dp.t100max,dp.max,t));cases.push({id:'cmp_max'+i,amt});}
+
+  // 10% smallest: between daily_min and t100min
+  for(let i=0;i<minN;i++){const t=Math.pow(Math.random(),3);const amt=Math.round(linInterp(dp.min,dp.t100min,t));cases.push({id:'cmp_min'+i,amt});}
+
+  // 80% random middle: t100min ~ t100max, centered at p50
+  for(let i=0;i<midN;i++){const r=Math.random();let amt;if(r<0.5){amt=Math.round(linInterp(dp.t100min,dp.p50,r*2));}else{amt=Math.round(linInterp(dp.p50,dp.t100max,Math.pow((r-0.5)*2,0.6)));}cases.push({id:'cmp_m'+i,amt});}
+
+  // Shuffle
+  for(let i=cases.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cases[i],cases[j]]=[cases[j],cases[i]];}
+  return cases;
+}
+
+function runCompareScenarios(){
+  const scenarios=[1000,500,100];
+  const types=['random','snake','greedy'];
+  const names={random:'🎲随机',snake:'🐍蛇形',greedy:'🎯贪心'};
+
+  let html='';
+
+  for(const n of scenarios){
+    const cases=sampleCompareDay(n);
+    const results={};
+
+    const s0=performance.now();
+    const rndA=randomDay(cases);
+    results.random={assignment:rndA.assignment,metrics:calcMetrics(rndA.assignment),ms:(performance.now()-s0).toFixed(1)};
+
+    const s1=performance.now();
+    const snkA=snakeDay(cases);
+    results.snake={assignment:snkA.assignment,metrics:calcMetrics(snkA.assignment),ms:(performance.now()-s1).toFixed(1)};
+
+    const s2=performance.now();
+    const grdA=greedyDay(cases);
+    results.greedy={assignment:grdA.assignment,metrics:calcMetrics(grdA.assignment),ms:(performance.now()-s2).toFixed(1)};
+
+    html+='<div class="card"><h3>📊 规模 '+(n===1000?'A':n===500?'B':'C')+'：'+n+' 件</h3>';
+
+    html+='<div class="tbl-wrap"><table>';
+    html+='<tr><th>算法</th><th>机构</th><th>目标</th><th>户数</th><th>户比</th><th>金比</th><th>户均</th><th>极差</th><th>容量</th><th>耗时</th></tr>';
+    for(const t of types){
+      const m=results[t].metrics;
+      const kStr='103%';
+      for(let ii=0;ii<INSTS.length;ii++){
+        const inst=INSTS[ii],mm=m[inst.name];
+        const cd=((mm.countRatio-inst.share)*100).toFixed(1);
+        const ad=((mm.amountRatio-inst.share)*100).toFixed(1);
+        html+='<tr>';
+        if(ii===0)html+='<td rowspan="4" style="font-weight:700">'+names[t]+'</td>';
+        html+='<td><span class="swatch" style="background:'+inst.color+'"></span>'+inst.name+'</td>';
+        html+='<td>'+(inst.share*100).toFixed(0)+'%</td>';
+        html+='<td>'+mm.count+'</td>';
+        html+='<td class="'+(Math.abs(cd)<=1?'good':Math.abs(cd)<=3?'warn':'bad')+'">'+(cd>=0?'+':'')+cd+'pp</td>';
+        html+='<td class="'+(Math.abs(ad)<=1?'good':Math.abs(ad)<=3?'warn':'bad')+'">'+(ad>=0?'+':'')+ad+'pp</td>';
+        html+='<td>₱'+Math.round(mm.avgAmount).toLocaleString()+'</td>';
+        html+='<td>₱'+mm.range.toLocaleString()+'</td>';
+        if(ii===0)html+='<td rowspan="4" style="font-size:11px">'+kStr+'</td>';
+        if(ii===0)html+='<td rowspan="4" style="font-size:11px;color:var(--sub)">'+results[t].ms+'ms</td>';
+        html+='</tr>';
+      }
+    }
+    html+='</table></div>';
+
+    // Fairness summary
+    html+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">';
+    html+=fairnessMini('户数公平度',types.map(t=>results[t].metrics._fair.countFairness));
+    html+=fairnessMini('金额公平度',types.map(t=>results[t].metrics._fair.amountFairness));
+    html+=fairnessMini('户均均衡',types.map(t=>1-results[t].metrics._fair.avgCV));
+    html+=fairnessMini('极差均衡',types.map(t=>1-results[t].metrics._fair.rangeCV));
+    html+='</div>';
+
+    html+='</div>'; // card
+  }
+  document.getElementById('compareResult').innerHTML=html;
+  document.getElementById('compareResult').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function fairnessMini(label,vals){
+  const names=['🎲','🐍','🎯','🔍'];
+  return '<div style="flex:1;min-width:140px;background:#f7f9fc;border-radius:8px;padding:8px 10px;font-size:11px">'+
+    '<div style="color:var(--sub);margin-bottom:4px">'+label+'</div>'+
+    vals.map((v,i)=>'<div style="display:flex;justify-content:space-between;margin:2px 0">'+
+      '<span>'+names[i]+'</span>'+
+      '<span style="font-weight:700;color:'+(v>=.95?'var(--success)':v>=.85?'var(--warn)':'var(--a)')+'">'+(v*100).toFixed(1)+'%</span></div>').join('')+'</div>';
+}
+
+// =============================================================================
+// ALTERNATING
+// =============================================================================
+function runAlternate(){
+  if(dailyCases.length===0)resampleDaily();
+
+  // Use same cases for both months (same case IDs)
+  const m1CaseMap={}; // case_id → institution
+
+  // Month 1: greedy (same as greedyDay, 103% capacity)
+  const m1All={A:[],B:[],C:[],D:[]};
+  for(let d=0;d<DAYS;d++){
+    const res=greedyDay(dailyCases[d]);
+    for(const inst of INSTS)m1All[inst.name].push(...res.assignment[inst.name]);
+    for(const c of dailyCases[d]){
+      // Find which institution got this case
+      for(const inst of INSTS){
+        if(res.assignment[inst.name].some(x=>x.id===c.id)){m1CaseMap[c.id]=inst.name;break;}
+      }
+    }
+  }
+
+  // Month 2: alternating (greedy + skip last month's institution)
+  const m2All={A:[],B:[],C:[],D:[]};
+  let skipCount=0,totalCount=0;
+  for(let d=0;d<DAYS;d++){
+    const sorted=[...dailyCases[d]].sort((a,b)=>b.amt-a.amt);
+    const r={A:[],B:[],C:[],D:[]},assigned={A:0,B:0,C:0,D:0};
+    const totalAmt=sorted.reduce((s,c)=>s+c.amt,0);
+    // Round 1: A→B→C→D (like greedyDay)
+    for(let ri=0;ri<4&&ri<sorted.length;ri++){
+      const inst=INSTS[ri].name;
+      const c=sorted[ri];
+      r[inst].push(c); assigned[inst]+=c.amt;
+    }
+    // Round 2+: priority-based + alternating constraint
+    for(let i=4;i<sorted.length;i++){
+      const c=sorted[i]; totalCount++;
+      const prs=INSTS.map(x=>({n:x.name,pr:assigned[x.name]/x.share})).sort((a,b)=>a.pr-b.pr);
+      const lastInst=m1CaseMap[c.id]; // this case's institution last month
+      let best=null;
+      // Try priority order, skip if same as last month
+      for(const p of prs){
+        if(p.n===lastInst) continue; // skip: same as last month → pick second best
+        if(assigned[p.n]+c.amt <= totalAmt*INSTS.find(x=>x.name===p.n).share*1.03){best=p.n;break;}
+      }
+      if(best===lastInst) skipCount++;
+      // Fallback: if all non-last-month institutions exceed capacity, pick best among all (including last month's)
+      if(!best){
+        for(const p of prs){
+          if(assigned[p.n]+c.amt <= totalAmt*INSTS.find(x=>x.name===p.n).share*1.03){best=p.n;break;}
+        }
+      }
+      if(!best) best=prs[0].n;
+      r[best].push(c); assigned[best]+=c.amt;
+    }
+    for(const inst of INSTS)m2All[inst.name].push(...r[inst.name]);
+  }
+
+  const m1=calcMetrics(m1All),m2=calcMetrics(m2All);
+  const skipRate=(skipCount/totalCount*100).toFixed(1);
+
+  let h='';
+  // Show first 2 rounds of Day 1
+  h+='<div class="card"><h3>📋 M2 第1天 前2轮分配流程（前20案）</h3><p style="font-size:12px;color:var(--sub);margin-bottom:8px">标注该案M1分配的机构，M2是否跳过→选次优</p>';
+  const sortedD0=[...dailyCases[0]].sort((a,b)=>b.amt-a.amt);
+  // Re-run day 1 with tracking for display
+  const rD={A:[],B:[],C:[],D:[]},asD={A:0,B:0,C:0,D:0};
+  const tdAmt=sortedD0.reduce((s,c)=>s+c.amt,0);
+  const trace=[];
+  for(let ri=0;ri<4&&ri<sortedD0.length;ri++){
+    const inst=INSTS[ri].name,c=sortedD0[ri];
+    rD[inst].push(c);asD[inst]+=c.amt;
+    trace.push({...c,inst,rank:ri+1,lastInst:m1CaseMap[c.id],skipped:false,priority:asD[inst]/INSTS[ri].share});
+  }
+  for(let i=4;i<Math.min(20,sortedD0.length);i++){
+    const c=sortedD0[i];
+    const prs=INSTS.map(x=>({n:x.name,pr:asD[x.name]/x.share})).sort((a,b)=>a.pr-b.pr);
+    const lastInst=m1CaseMap[c.id];
+    const firstChoice=prs[0].n;
+    const skipped=(firstChoice===lastInst);
+    let best=null;
+    for(const p of prs){
+      if(p.n===lastInst)continue;
+      if(asD[p.n]+c.amt<=tdAmt*INSTS.find(x=>x.name===p.n).share*1.03){best=p.n;break;}
+    }
+    if(!best){for(const p of prs){if(asD[p.n]+c.amt<=tdAmt*INSTS.find(x=>x.name===p.n).share*1.03){best=p.n;break;}}}
+    if(!best)best=prs[0].n;
+    rD[best].push(c);asD[best]+=c.amt;
+    trace.push({...c,inst:best,rank:i+1,lastInst,skipped,firstChoice});
+  }
+
+  const left=trace.slice(0,10),right=trace.slice(10,20);
+  function halfTrace(half){
+    let t='<table style="font-size:11px"><tr><th style="padding:3px 5px">#</th><th style="padding:3px 5px">金额</th><th style="padding:3px 5px">M1机构</th><th style="padding:3px 5px">M2首选</th><th style="padding:3px 5px">是否跳过</th><th style="padding:3px 5px">M2机构</th></tr>';
+    for(const c of half){
+      t+='<tr><td style="padding:3px 5px">'+c.rank+'</td>';
+      t+='<td style="padding:3px 5px;white-space:nowrap">₱'+c.amt.toLocaleString()+'</td>';
+      t+='<td style="padding:3px 5px;color:'+INSTS.find(i=>i.name===c.lastInst).color+'">'+c.lastInst+'</td>';
+      t+='<td style="padding:3px 5px">'+(c.firstChoice||'-')+'</td>';
+      t+='<td style="padding:3px 5px;font-weight:700;color:'+(c.skipped?'var(--a)':'var(--success)')+'">'+(c.skipped?'⚠️ 跳过→选次优':'✅ 正常分')+'</td>';
+      t+='<td style="padding:3px 5px;font-weight:700;color:'+INSTS.find(i=>i.name===c.inst).color+'">'+c.inst+'</td></tr>';
+    }
+    t+='</table>';return t;
+  }
+  h+='<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">';
+  h+='<div style="flex:1;min-width:280px"><div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:4px">案件 1-10</div><div class="tbl-wrap">'+halfTrace(left)+'</div></div>';
+  h+='<div style="flex:1;min-width:280px"><div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:4px">案件 11-20</div><div class="tbl-wrap">'+halfTrace(right)+'</div></div>';
+  h+='</div></div>';
+
+  // Month comparison
+  h+='<div class="card"><h3>📊 两个月对比</h3><div class="tbl-wrap"><table>';
+  h+='<tr><th>机构</th><th>目标</th><th>M1户数</th><th>M1户比</th><th>M1金比</th><th>M1户均</th><th>M2户数</th><th>M2户比</th><th>M2金比</th><th>M2户均</th><th>换手</th></tr>';
+  for(const inst of INSTS){
+    // Count cases that moved away from this institution
+    let movedAway=0,totalM1=0;
+    for(const [cid,instName] of Object.entries(m1CaseMap)){
+      if(instName===inst.name){
+        totalM1++;
+        // Check M2: did this case go to a different institution?
+        const inM2=m2All[inst.name].some(x=>x.id===cid);
+        if(!inM2) movedAway++;
+      }
+    }
+    const turnover=totalM1>0?(movedAway/totalM1*100).toFixed(1):'0';
+    h+='<tr><td><span class="swatch" style="background:'+inst.color+'"></span>'+inst.name+'</td><td>'+(inst.share*100).toFixed(0)+'%</td>';
+    h+='<td>'+m1[inst.name].count+'</td><td>'+(m1[inst.name].countRatio*100).toFixed(1)+'%</td><td>'+(m1[inst.name].amountRatio*100).toFixed(1)+'%</td><td>₱'+Math.round(m1[inst.name].avgAmount).toLocaleString()+'</td>';
+    h+='<td>'+m2[inst.name].count+'</td><td>'+(m2[inst.name].countRatio*100).toFixed(1)+'%</td><td>'+(m2[inst.name].amountRatio*100).toFixed(1)+'%</td><td>₱'+Math.round(m2[inst.name].avgAmount).toLocaleString()+'</td>';
+    h+='<td>'+turnover+'%</td></tr>';
+  }
+  h+='</table></div></div>';
+
+  // Fairness comparison
+  h+='<div class="card"><h3>⚖️ 公平性对比</h3><div class="tbl-wrap"><table>';
+  h+='<tr><th>月份</th><th>户数公平度</th><th>金额公平度</th><th>户均均衡</th><th>极差均衡</th></tr>';
+  h+='<tr><td>M1（贪心）</td><td class="'+(m1._fair.countFairness>=.95?'good':m1._fair.countFairness>=.85?'warn':'bad')+'">'+(m1._fair.countFairness*100).toFixed(1)+'%</td><td class="'+(m1._fair.amountFairness>=.95?'good':m1._fair.amountFairness>=.85?'warn':'bad')+'">'+(m1._fair.amountFairness*100).toFixed(1)+'%</td><td class="'+(1-m1._fair.avgCV>=.7?'good':1-m1._fair.avgCV>=.5?'warn':'bad')+'">'+((1-m1._fair.avgCV)*100).toFixed(1)+'%</td><td class="'+(1-m1._fair.rangeCV>=.7?'good':1-m1._fair.rangeCV>=.5?'warn':'bad')+'">'+((1-m1._fair.rangeCV)*100).toFixed(1)+'%</td></tr>';
+  h+='<tr><td>M2（交替）</td><td class="'+(m2._fair.countFairness>=.95?'good':m2._fair.countFairness>=.85?'warn':'bad')+'">'+(m2._fair.countFairness*100).toFixed(1)+'%</td><td class="'+(m2._fair.amountFairness>=.95?'good':m2._fair.amountFairness>=.85?'warn':'bad')+'">'+(m2._fair.amountFairness*100).toFixed(1)+'%</td><td class="'+(1-m2._fair.avgCV>=.7?'good':1-m2._fair.avgCV>=.5?'warn':'bad')+'">'+((1-m2._fair.avgCV)*100).toFixed(1)+'%</td><td class="'+(1-m2._fair.rangeCV>=.7?'good':1-m2._fair.rangeCV>=.5?'warn':'bad')+'">'+((1-m2._fair.rangeCV)*100).toFixed(1)+'%</td></tr>';
+  h+='</table></div></div>';
+
+  h+='<div class="highlight-box">📌 M2 共分配 '+totalCount.toLocaleString()+' 案次，其中 <strong>'+skipCount.toLocaleString()+'</strong> 次（<strong>'+skipRate+'%</strong>）因"上月同一机构"而跳过首选。交替分配强制机构换手，避免某机构"锁定"优质案件（M2+委外催收常用）。</div>';
+
+  document.getElementById('alternateResult').innerHTML=h;
+  document.getElementById('alternateResult').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// =============================================================================
+// WATERFILL
+// =============================================================================
+function runWaterfill(){
+  const N=10, WDAYS=5, INIT=120000, DAY_CASES=100;
+
+  // recovery rates (different per employee)
+  const rates=[0.08,0.07,0.06,0.05,0.05,0.04,0.04,0.03,0.03,0.02]; // emp 1..10
+
+  // Pre-generate Day1-5 case pools (100 cases/day, same for reproducibility)
+  const dp=JUNE_NEW_ALLOC[15];
+  const dayPools=[];
+  for(let d=0;d<WDAYS;d++){
+    const cases=[];
+    for(let i=0;i<4;i++){const t=Math.pow(Math.random(),3);cases.push(linInterp(dp.t100max,dp.max,t));}
+    for(let i=0;i<4;i++){const t=Math.pow(Math.random(),3);cases.push(linInterp(dp.min,dp.t100min,t));}
+    for(let i=0;i<92;i++){const r=Math.random();cases.push(r<0.5?linInterp(dp.t100min,dp.p50,r*2):linInterp(dp.p50,dp.t100max,Math.pow((r-0.5)*2,0.6)));}
+    for(let i=cases.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cases[i],cases[j]]=[cases[j],cases[i]];}
+    dayPools.push(cases);
+  }
+
+  // Day1: waterfill with case count cap=10 per person
+  // Each person starts with INIT, assign 100 cases sorted desc → lowest amount gets priority
+  const d1Sorted=[...dayPools[0]].sort((a,b)=>b-a);
+  const d1Assigned={};for(let e=1;e<=N;e++)d1Assigned[e]={cases:[],amt:0,cnt:0};
+  const d1Cum={};
+  for(const c of d1Sorted){
+    const ord=Array.from({length:N},(_,i)=>i+1).map(e=>({e,pr:INIT+(d1Cum[e]||0)})).sort((a,b)=>a.pr-b.pr);
+    let best=null;
+    for(const o of ord){if(d1Assigned[o.e].cnt<10){best=o.e;break;}}
+    if(!best)best=ord[0].e;
+    d1Assigned[best].cases.push(c);d1Assigned[best].amt+=c;d1Assigned[best].cnt++;d1Cum[best]=(d1Cum[best]||0)+c;
+  }
+  // Round to nearest integer for clean display
+  for(let e=1;e<=N;e++)d1Assigned[e].amt=Math.round(d1Assigned[e].amt);
+
+  // rec: emp→[{day,initial,assignedAmt,assignedCnt,afterAssign,recovery}]
+  const rec={};for(let e=1;e<=N;e++)rec[e]=[];
+
+  // Day1: initial=INIT for priority only; recovery only on assigned portion
+  // Day2 initial = Day1 assignedAmt - Day1 recovery (INIT does not carry forward)
+  const day1Init={},day1After={},day1Recovery={};
+  for(let e=1;e<=N;e++){
+    day1Init[e]=INIT;
+    day1Recovery[e]=Math.round(d1Assigned[e].amt*rates[e-1]); // recovery only on assigned
+    day1After[e]=INIT+d1Assigned[e].amt; // after-assignment for CV display
+  }
+  for(let e=1;e<=N;e++)rec[e].push({day:1,initial:day1Init[e],assignedAmt:d1Assigned[e].amt,assignedCnt:10,afterAssign:day1After[e],recovery:day1Recovery[e]});
+  let prevInit={};
+  for(let e=1;e<=N;e++)prevInit[e]=d1Assigned[e].amt-day1Recovery[e]; // Day2 initial = Day1 assigned - Day1 recovery
+
+  // Day2-5: waterfill
+  for(let d=2;d<=WDAYS;d++){
+    const cases=dayPools[d-1];
+    const totalAmt=cases.reduce((s,v)=>s+v,0);
+    const cap=totalAmt/N*1.3;
+    const initLib={};for(let e=1;e<=N;e++)initLib[e]=prevInit[e];
+    const assigned={};for(let e=1;e<=N;e++)assigned[e]={cases:[],amt:0,cnt:0};
+    const cum={};
+
+    for(const c of [...cases].sort((a,b)=>b-a)){
+      const ord=Array.from({length:N},(_,i)=>i+1).map(e=>({e,pr:initLib[e]+(cum[e]||0)})).sort((a,b)=>a.pr-b.pr);
+      let best=null;
+      for(const o of ord){if((cum[o.e]||0)+c<=cap){best=o.e;break;}}
+      if(!best)best=ord[0].e;
+      assigned[best].cases.push(c);assigned[best].amt+=c;assigned[best].cnt++;cum[best]=(cum[best]||0)+c;
+    }
+
+    const after={},recovery={};
+    for(let e=1;e<=N;e++){
+      after[e]=initLib[e]+assigned[e].amt;
+      recovery[e]=Math.round(assigned[e].amt*rates[e-1]); // recovery only on today's assigned
+    }
+    for(let e=1;e<=N;e++)rec[e].push({day:d,initial:initLib[e],assignedAmt:assigned[e].amt,assignedCnt:assigned[e].cnt,afterAssign:after[e],recovery:recovery[e]});
+    for(let e=1;e<=N;e++)prevInit[e]=assigned[e].amt-recovery[e]; // next day initial = today assigned - today recovery
+  }
+
+  // --- Render ---
+  const totalAssigned={};for(let e=1;e<=N;e++){totalAssigned[e]={cnt:0,amt:0};for(const r of rec[e]){totalAssigned[e].cnt+=r.assignedCnt;totalAssigned[e].amt+=r.assignedAmt;}}
+  const totAvgs=Array.from({length:N},(_,i)=>totalAssigned[i+1].amt);
+  const totAvg=Math.round(totAvgs.reduce((s,v)=>s+v,0)/N);
+
+  let h='<div class="card"><h3>💧 注水分案 · Day1-5</h3>';
+  h+='<p style="font-size:12px;color:var(--sub);margin-bottom:10px">每天'+DAY_CASES+'件 · Day1每人固定10件 · 初始在库相同('+INIT.toLocaleString()+') · 回收率差异→注水拉平 · 容量≤人均×1.3</p>';
+
+  h+='<div class="tbl-wrap"><table style="font-size:11px">';
+  h+='<tr><th>员工</th>'+
+    '<th>Day1分案</th><th>Day1回收</th>'+
+    '<th>Day2初始在库</th><th>Day2分案</th><th>Day2分案后在库</th><th>Day2回收</th>'+
+    '<th>Day5初始在库</th><th>Day5分案</th><th>Day5分案后在库</th>'+
+    '<th>Day1-5总计分案</th><th>总计与均值差</th></tr>';
+
+  for(let e=1;e<=N;e++){
+    const d1=rec[e][0], d2=rec[e][1], d5=rec[e][4];
+    const ta=totalAssigned[e]; const diff=ta.amt-totAvg;
+    h+='<tr>';
+    h+='<td><strong>'+e+'</strong></td>';
+    h+='<td>'+d1.assignedCnt+'件/'+Math.round(d1.assignedAmt).toLocaleString()+'</td>';
+    h+='<td style="color:var(--a)">−'+d1.recovery.toLocaleString()+'</td>';
+    h+='<td>'+Math.round(d2.initial).toLocaleString()+'</td>';
+    h+='<td>'+d2.assignedCnt+'件/'+Math.round(d2.assignedAmt).toLocaleString()+'</td>';
+    h+='<td>'+Math.round(d2.afterAssign).toLocaleString()+'</td>';
+    h+='<td style="color:var(--a)">−'+d2.recovery.toLocaleString()+'</td>';
+    h+='<td>'+Math.round(d5.initial).toLocaleString()+'</td>';
+    h+='<td>'+d5.assignedCnt+'件/'+Math.round(d5.assignedAmt).toLocaleString()+'</td>';
+    h+='<td>'+Math.round(d5.afterAssign).toLocaleString()+'</td>';
+    h+='<td>'+ta.cnt+'件/'+Math.round(ta.amt).toLocaleString()+'</td>';
+    h+='<td style="color:'+(diff>0?'var(--a)':'var(--success)')+'">'+(diff>=0?'+':'')+Math.round(diff).toLocaleString()+'</td></tr>';
+  }
+  // Avg row
+  const avg=a=>Math.round(a.reduce((s,v)=>s+v,0)/N);
+  h+='<tr style="font-weight:700;background:#f7f9fc"><td>均值</td>';
+  h+='<td>'+avg([...Array(N)].map((_,i)=>rec[i+1][0].assignedCnt))+'件/'+avg([...Array(N)].map((_,i)=>rec[i+1][0].assignedAmt)).toLocaleString()+'</td>';
+  h+='<td>−'+avg([...Array(N)].map((_,i)=>rec[i+1][0].recovery)).toLocaleString()+'</td>';
+  h+='<td>'+avg([...Array(N)].map((_,i)=>rec[i+1][1].initial)).toLocaleString()+'</td>';
+  h+='<td>'+avg([...Array(N)].map((_,i)=>rec[i+1][1].assignedCnt))+'件/'+avg([...Array(N)].map((_,i)=>rec[i+1][1].assignedAmt)).toLocaleString()+'</td>';
+  h+='<td>'+avg([...Array(N)].map((_,i)=>rec[i+1][1].afterAssign)).toLocaleString()+'</td>';
+  h+='<td>−'+avg([...Array(N)].map((_,i)=>rec[i+1][1].recovery)).toLocaleString()+'</td>';
+  h+='<td>'+avg([...Array(N)].map((_,i)=>rec[i+1][4].initial)).toLocaleString()+'</td>';
+  h+='<td>'+avg([...Array(N)].map((_,i)=>rec[i+1][4].assignedCnt))+'件/'+avg([...Array(N)].map((_,i)=>rec[i+1][4].assignedAmt)).toLocaleString()+'</td>';
+  h+='<td>'+avg([...Array(N)].map((_,i)=>rec[i+1][4].afterAssign)).toLocaleString()+'</td>';
+  h+='<td>'+[...Array(N)].reduce((s,_,i)=>s+totalAssigned[i+1].cnt,0)+'件/'+totAvg.toLocaleString()+'</td>';
+  h+='<td>'+totAvg.toLocaleString()+'</td></tr>';
+  h+='</table></div>';
+
+  const dayLibs=[0,1,4].map(d=>[...Array(N)].map((_,i)=>rec[i+1][d].afterAssign));
+  h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">';
+  h+=scoreBox('Day1 分案后 CV',(cv(dayLibs[0])*100).toFixed(1)+'%','good');
+  h+=scoreBox('Day2 分案后 CV',(cv(dayLibs[1])*100).toFixed(1)+'%',cv(dayLibs[1])<.15?'good':cv(dayLibs[1])<.3?'warn':'bad');
+  h+=scoreBox('Day5 分案后 CV',(cv(dayLibs[2])*100).toFixed(1)+'%',cv(dayLibs[2])<.1?'good':cv(dayLibs[2])<.2?'warn':'bad');
+  h+='</div></div>';
+
+  h+='<div class="highlight-box">📌 <strong>注水逻辑</strong>：Day1每人固定10件金额相同 → 分案后在库一致 → 回收率差异(员工1=8%→10=2%)导致Day2初始不均 → 注水(低库优先+容量≤人均×1.3)→分案后在库再次拉平。Day5各员工在库趋近消除回收能力带来的负载差异。</div>';
+
+  document.getElementById('waterfillResult').innerHTML=h;
+  document.getElementById('waterfillResult').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// =============================================================================
+// NAVIGATION
+// =============================================================================
+function navTo(pageId){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const item=document.querySelector('.nav-item[onclick="navTo(\''+pageId+'\')"]');
+  if(item)item.classList.add('active');
+}
+
+// =============================================================================
+// OVERVIEW CHARTS
+// =============================================================================
+function destroyChart(key){if(chartInsts[key]){chartInsts[key].destroy();chartInsts[key]=null;}}
+function initOverviewCharts(){
+  // Overview page uses tables only, no charts needed
+}
+
+// =============================================================================
+// INIT
+// =============================================================================
+(function init(){
+  resampleDaily();
+  setTimeout(initOverviewCharts,200);
+  console.log('✅ 催收案件分配工具已就绪 | May 2026真实数据采样');
+})();
+</script>
+</body>
+</html>
